@@ -19,7 +19,7 @@
         mkdir -p summary_file &&
         mkdir -p pop_order &&
         mkdir -p bin_local &&
-
+        mkdir -p results_LDNe genfiles summary_file pop_order bin_local &&
         ## Give execution permissions to the RLDNe package executable
         #import re
  
