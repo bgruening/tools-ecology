@@ -6,7 +6,7 @@
         <requirement type="package" version="4.5">r-base</requirement>
         <requirement type="package" version="0.1.0">r-efglmh</requirement>
         <requirement type="package" version="1.0.0">r-rldne</requirement>
-        <requirement type="package" version ="1.1.4">r-dplyr</requirement>
+        <requirement type="package" version="1.1.4">r-dplyr</requirement>
     </requirements>
 
     <required_files>
