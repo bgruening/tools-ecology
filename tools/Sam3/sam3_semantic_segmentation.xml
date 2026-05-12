@@ -59,6 +59,7 @@
             </param>
             <when value="image">
                 <param name="source" type="data" format="jpg,png,tiff" multiple="true" label="Input images">
+                    <validator type="expression" message="Your image file must have a valid extension (e.g. rename 'image' to 'image.png'). Supported formats: .jpg, .png, .tif">value.name.lower().endswith(('.jpg', '.jpeg', '.png', '.tiff', '.tif'))</validator>
                     <validator type="expression" message="TIFF images must contain exactly 3 channels (RGB).">value.ext not in ('tiff') or value.metadata.channels == 3</validator>
                 </param>
                 <param name="outputs_format" type="select" multiple="true" optional="true"
@@ -71,7 +72,9 @@
             </when>
             <when value="video">
                 <param name="source" type="data" format="mp4,avi,mov,gif"
-                    multiple="false" label="Input video file"/>
+                    multiple="false" label="Input video file">
+                    <validator type="expression" message="Your video file must have a valid extension (e.g. rename 'video' to 'video.mp4'). Supported formats: .mp4, .avi, .mov, .gif">value.name.lower().endswith(('.mp4', '.avi', '.mov', '.gif'))</validator>
+                </param>
                 <param name="quality" type="select" label="Video quality"
                     help="Select output video bitrate,does not affect processing speed or annotations. 
                           Higher quality than the original is not useful and will only increase file size.">
@@ -185,6 +188,21 @@ How it works
 2. Enter a text prompt describing the object to segment
 3. SAM3 generates segmentation masks and overlays
 4. Results are returned as images or videos
+
+-------------------
+Input
+-------------------
+
+- **Images**: .jpg, .png, .tiff — multiple files accepted 
+- **Video**: .mp4, .avi, .mov, .gif — single file only
+
+.. class:: infomark 
+
+Pay attention to file extensions
+
+- **Galaxy has assigned the wrong datatype**: your file does not appear in the tool input list, click the pencil icon in the history, go to the **Datatype** tab, select the correct format and click **Save**.
+- **The file name has no extension**: the Run button is not active, make sure your file name ends with a valid extension (e.g. rename image to image.jpg) by clicking the pencil icon in the history and fixing it in the **Name** field.
+
 
 -------------------
 Notes
