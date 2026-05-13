@@ -1,4 +1,4 @@
-<tool id="sam3_semantic_segmentation" name="SAM3 Semantic Segmentation" version="1.0.1+galaxy5" profile="25.1">
+<tool id="sam3_semantic_segmentation" name="SAM3 Semantic Segmentation" version="1.0.1+galaxy4" profile="25.1">
     <description>
         SAM3 performs text-prompted semantic segmentation on images or videos. 
     </description>
@@ -13,11 +13,11 @@
     #set $name_file = '' 
     #if $input.input_kind == "image"
         #for $indata in $input.source
-            ln -s '$indata' 'data_files/${indata.element_identifier}' &&
+            ln -s '$indata' 'data_files/${indata.element_identifier}.${indata.ext}' &&
             #set $name_file += $indata.element_identifier + " "
         #end for
     #else
-        ln -s '$input.source' 'data_files/${input.source.element_identifier}' &&
+        ln -s '$input.source' 'data_files/${input.source.element_identifier}.${indata.ext}' &&
         #set $name_file = $input.source.element_identifier + " "
     #end if
     python '$__tool_directory__/sam3_semantic_segmentation.py' 
@@ -60,7 +60,6 @@
             </param>
             <when value="image">
                 <param name="source" type="data" format="jpg,png,tiff" multiple="true" label="Input images">
-                    <validator type="expression" message="Your image file must have a valid extension (e.g. rename 'image' to 'image.png'). Supported formats: .jpg, .png, .tif">value.name.lower().endswith(('.jpg', '.jpeg', '.png', '.tiff', '.tif'))</validator>
                     <validator type="expression" message="TIFF images must contain exactly 3 channels (RGB).">value.ext not in ('tiff') or value.metadata.channels == 3</validator>
                 </param>
                 <param name="outputs_format" type="select" multiple="true" optional="true"
@@ -73,9 +72,7 @@
             </when>
             <when value="video">
                 <param name="source" type="data" format="mp4,avi,mov,gif"
-                    multiple="false" label="Input video file">
-                    <validator type="expression" message="Your video file must have a valid extension (e.g. rename 'video' to 'video.mp4'). Supported formats: .mp4, .avi, .mov, .gif">value.name.lower().endswith(('.mp4', '.avi', '.mov', '.gif'))</validator>
-                </param>
+                    multiple="false" label="Input video file"/>
                 <param name="quality" type="select" label="Video quality"
                     help="Select output video bitrate,does not affect processing speed or annotations. 
                           Higher quality than the original is not useful and will only increase file size.">
@@ -207,14 +204,7 @@ Input
 - **Images**: .jpg, .png, .tiff — multiple files accepted 
 - **Video**: .mp4, .avi, .mov, .gif — single file only
 
-.. class:: infomark 
-
-Pay attention to file extensions
-
-- **Galaxy has assigned the wrong datatype**: your file does not appear in the tool input list, click the pencil icon in the history, go to the **Datatype** tab, select the correct format and click **Save**.
-- **The file name has no extension**: the Run button is not active, make sure your file name ends with a valid extension (e.g. rename image to image.jpg) by clicking the pencil icon in the history and fixing it in the **Name** field.
-
-
+.. note:: The datatype assigned by Galaxy may not be compatible with this tool: if your file does **not appear** in the tool input list, click the **pencil icon** in the history, go to the **Datatype** tab, select the correct format and click Save.
 -------------------
 Notes
 -------------------
