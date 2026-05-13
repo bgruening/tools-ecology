@@ -587,7 +587,7 @@ def main():
         "task": "segment",
         "mode": "predict",
         "model": args.model,
-        "half": True,
+        "half": False,
         "imgsz": args.imgsz,
         "save": True,
         "save_dir": str(outputs_annotated),
