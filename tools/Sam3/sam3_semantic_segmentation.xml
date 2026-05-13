@@ -42,6 +42,7 @@
         #end if
         --do_normalization '$do_normalization'
         --show_bbox '$show_bbox'
+        --imgsz '$imgsz'
     ]]></command>
     <inputs>
         <param name="sam3_models" label="Model data" type="select" help="Contact the administrator of our Galaxy instance if you miss model data">
@@ -115,6 +116,16 @@
             help="For video input: process one frame every N frames."/>
         <param name="show_bbox" type="boolean" checked="true" truevalue="true" falsevalue="false"
             label="Show bounding boxes on annotated output"/>
+        <param name="imgsz" type="select" label="Inference image size"
+            help="Resolution at which the image is resized before segmentation.
+                A higher value preserves more detail and improves boundary accuracy,
+                especially for small objects, but increases computation time and GPU memory usage.
+                If you encounter out-of-memory errors, select a lower value.">
+            <option value="1280">1280 (highest accuracy)</option>
+            <option value="1024">1024 (high accuracy)</option>
+            <option value="640" selected="true">640 (default, balanced)</option>
+            <option value="512">512 (low memory)</option>
+        </param>
         <param name="do_normalization" type="boolean" checked="false" label="Normalize outputs?" >
             <help><![CDATA[
 This option will be applied to all selected formats above.<br/>
