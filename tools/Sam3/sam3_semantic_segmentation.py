@@ -90,7 +90,8 @@ def parse_arguments() -> argparse.Namespace:
         "--imgsz",
         type=int,
         default=1024,
-        help="Inference image size (pixels). Reduce to 640 or 512 to lower GPU memory usage on large files.",
+        help="Inference image size (pixels). Reduce to 640 or 512 to "
+        " lower GPU memory usage on large files.",
     )
     parser.add_argument(
         "--coco_video_mode",
