@@ -205,6 +205,7 @@ Input
 - **Video**: .mp4, .avi, .mov, .gif — single file only
 
 .. note:: The datatype assigned by Galaxy may not be compatible with this tool: if your file does **not appear** in the tool input list, click the **pencil icon** in the history, go to the **Datatype** tab, select the correct format and click Save.
+
 -------------------
 Notes
 -------------------
