@@ -87,6 +87,13 @@ def parse_arguments() -> argparse.Namespace:
         help="Show bounding boxes on annotated output: 'true' or 'false'",
     )
     parser.add_argument(
+        "--imgsz",
+        type=int,
+        default=1024,
+        help="Inference image size (pixels). Reduce to 640 or 512 to "
+        " lower GPU memory usage on large files.",
+    )
+    parser.add_argument(
         "--coco_video_mode",
         type=str,
         default="no_coco",
@@ -580,7 +587,8 @@ def main():
         "task": "segment",
         "mode": "predict",
         "model": args.model,
-        "half": False,  # Use FP16 for faster inference
+        "half": False,
+        "imgsz": args.imgsz,
         "save": True,
         "save_dir": str(outputs_annotated),
     }
