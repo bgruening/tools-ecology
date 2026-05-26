@@ -30,6 +30,7 @@
         --k-min '$k_mode.k_min'
         --k-max '$k_mode.k_max'
         --n-start '$k_mode.n_start'
+        --n-runs '$k_mode.n_runs'
       #end if
       --n-pca-max '$n_pca_max'
       #if str($seed_mode.seed_mode_sel) == 'random':
@@ -63,6 +64,10 @@
           <param name="n_start" type="integer" value="10" min="1" max="100"
              label="Number of K-means iterations (nstart)"
              help="Number of random initialisations for K-means. Increasing this value improves stability at the expense of computation time." />
+
+          <param name="n_runs" type="integer" value="10" min="2"
+             label="Number of find.clusters() repetitions (n-runs)"
+             help="Number of independent find.clusters() runs used to compute the confidence interval on the BIC curve. Each run uses a different random seed. More runs produce a more reliable interval but increase computation time." />
 
         </when>
         <when value="fixed">
@@ -120,6 +125,7 @@
           <param name="k_min"   value="1" />
           <param name="k_max"   value="10" />
           <param name="n_start" value="10" />
+          <param name="n_runs" value="10"/>
         </conditional>
       </section>
       <section name="advanced">
@@ -181,6 +187,7 @@
           <param name="k_min"   value="1" />
           <param name="k_max"   value="10" />
           <param name="n_start" value="10" />
+          <param name="n_runs" value="10"/>
         </conditional>
       </section>
       <section name="advanced">
@@ -350,8 +357,11 @@ PCA first reduces the data to a tractable set of orthogonal axes summarising the
 Groups are identified using K-means clustering applied to the PCA scores, as implemented in the *find.clusters* function of the adegenet package (Jombart, 2008; Jombart & Ahmed, 2011). 
 Two modes are available:
 
-- *Automatic selection*: K-means is run for a user-defined range of K values (from K-min to K-max). The optimal number of clusters corresponds to the K value with the lowest the Bayesian Information Criterion (BIC), which penalises model complexity and avoids overfitting (Jombart *et al*., 2010). The retained K corresponds to the "elbow" of the BIC curve.
-- *Fixed selection*: The user defines a number of clusters directly, bypassing the BIC inference step.
+  - *Automatic selection*: K-means is run for a user-defined range of K values (from K-min to K-max). The optimal number of clusters corresponds to the K value with the lowest the Bayesian Information Criterion (BIC), which penalises model complexity and avoids overfitting (Jombart *et al*., 2010). The retained K corresponds to the "elbow" of the BIC curve.
+    To quantify this variability, *find.clusters()* is run **n-runs** independent times, each with a distinct random seed (seed, seed+1, seed+2, …). Every run internally performs **nstart** random initialisations and retains the best one, so the BIC value recorded per run already represents the best solution found across those initialisations.
+    The K retained for downstream analysis is the one with the lowest BIC across all runs and all initialisations (i.e. the global best solution).
+    
+  - *Fixed selection*: The user defines a number of clusters directly, bypassing the BIC inference step.
 
 A random seed can be set to ensure the reproducibility of K-means stochastic initialisation.
 
@@ -365,7 +375,7 @@ The tool generates the following outputs:
 - Summary statistics file (label: Summary stats)
 - Individual coordinates on the DAPC discriminant axes (label: LD scores)
 - Assignment table including K-means cluster, DAPC-assigned cluster, K-means/DAPC concordance, and posterior membership probabilities for each cluster (label: Assignments)
-- BIC curve (automatic mode only)
+- BIC curve (automatic mode only) with confidence interval.
 - PCA scree plot showing the variance explained by each axis, with cumulative variance overlaid
 - PCA and DAPC scatter plots
 - Posterior membership barplot showing the assignment probability of each individual
