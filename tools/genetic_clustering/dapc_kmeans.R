@@ -17,6 +17,7 @@ parse_args <- function(args) {
     k_fixed       = NULL,    # NULL = auto, integer = K fixed
     n_pca_max     = 300L,
     n_start       = 10L,     #only on auto
+    n_runs        = 10L,     # number of find.clusters() repetitions for BIC CI
     seed          = 42L      #NULL = random, integer = reproductible
   )
   
@@ -30,6 +31,7 @@ parse_args <- function(args) {
            "--k-fixed"   = { params$k_fixed       <- as.integer(args[i+1]); i <- i+2 },
            "--n-pca-max" = { params$n_pca_max     <- as.integer(args[i+1]); i <- i+2 },
            "--n-start"   = { params$n_start       <- as.integer(args[i+1]); i <- i+2 },
+           "--n-runs"    = { params$n_runs        <- as.integer(args[i+1]); i <- i+2 },
            "--seed"      = {
              val <- args[i+1]
              params$seed <- if (val == "NULL") NULL else as.integer(val)
@@ -151,33 +153,57 @@ if (!is.null(params$k_fixed)) { # Fixed mode: K set by user -- inference is skip
   
 } else { #automatic mode : BIC k-means
   k_range    <- params$k_min:params$k_max
-  bic_scores <- rep(NA_real_, length(k_range))
   
-  # find.clusters adegenet (BIC)
-  cat(" find.clusters adegenet (internal BIC)...\n")
-  if (!is.null(params$seed)) set.seed(params$seed)
-  fc_auto <- tryCatch(
-    find.clusters(
-      gdata,
-      n.pca       = n_pca,
-      n.clust     = NULL,
-      method      = "kmeans",
-      stat        = "BIC",
-      max.n.clust = params$k_max,
-      n.start     = params$n_start,
-      choose      = FALSE,
-      graph       = FALSE
-    ),
-    error = function(e) { warning(paste("find.clusters failed :", e$message)); NULL }
+  # --- Run find.clusters() n_runs times with different seeds ---
+  # Each run uses the official adegenet BIC, giving a true distribution
+  # of BIC values across random k-means initialisations.
+  cat(sprintf(" find.clusters adegenet (BIC, %d runs)...\n", params$n_runs))
+  
+  fc_runs <- vector("list", params$n_runs)
+  for (r in seq_len(params$n_runs)) {
+    run_seed <- if (!is.null(params$seed)) params$seed + r else NULL
+    if (!is.null(run_seed)) set.seed(run_seed)
+    fc_runs[[r]] <- tryCatch(
+      find.clusters(
+        gdata,
+        n.pca       = n_pca,
+        n.clust     = NULL,
+        method      = "kmeans",
+        stat        = "BIC",
+        max.n.clust = params$k_max,
+        n.start     = params$n_start,
+        choose      = FALSE,
+        graph       = FALSE
+      ),
+      error = function(e) { warning(paste("find.clusters run", r, "failed:", e$message)); NULL }
+    )
+  }
+  
+  # Keep only successful runs
+  fc_runs <- Filter(Negate(is.null), fc_runs)
+  if (length(fc_runs) == 0) stop("All find.clusters() runs failed.")
+  
+  # fc_auto = run with the overall lowest minimum BIC (used for K selection)
+  best_run_idx <- which.min(sapply(fc_runs, function(fc) min(fc$Kstat)))
+  fc_auto      <- fc_runs[[best_run_idx]]
+  
+  # Build per-K BIC matrix (runs x K) for CI
+  k_labels  <- names(fc_runs[[1]]$Kstat)
+  bic_matrix <- do.call(rbind, lapply(fc_runs, function(fc) fc$Kstat[k_labels]))
+  rownames(bic_matrix) <- paste0("run", seq_len(nrow(bic_matrix)))
+  
+  # Store summary for the BIC plot (used later)
+  bic_ci_df <- data.frame(
+    K       = as.integer(sub("K=", "", k_labels)),
+    BIC_mean = colMeans(bic_matrix),
+    BIC_min  = apply(bic_matrix, 2, min),
+    BIC_max  = apply(bic_matrix, 2, max),
+    BIC_sd   = apply(bic_matrix, 2, sd)
   )
   
-  k_adegenet <- if (!is.null(fc_auto)) {
-    as.integer(sub("K=", "", names(which.min(fc_auto$Kstat))))
-  } else {
-    NA_integer_
-  }
-  cat(sprintf("      -> K adegenet : %s\n",
-              ifelse(is.na(k_adegenet), "failed", k_adegenet)))
+  k_adegenet <- as.integer(sub("K=", "", names(which.min(fc_auto$Kstat))))
+  cat(sprintf("      -> K adegenet (best run) : %d  |  %d/%d runs succeeded\n",
+              k_adegenet, length(fc_runs), params$n_runs))
   
   k_infer <- k_adegenet
 }
@@ -194,12 +220,11 @@ print(table(fc_final$grp))
 ##### DAPC -- paxes = k-1 (Thia 2022 rule) #####
 
 # n_daxes (DA axes) : at most k-1 discriminant axes (algebraic bound of LDA)
-# n_paxes (PCA axes fed to LDA) : must be >> k-1 so that the LDA has sufficient signal
-# to distinguish between the clusters.
-# When n_axes = k-1, DAPC reduces to the same projection as raw PCA (identical plots).
-# Rule of thumb: ~0.8*n_ind/k, with a lower limit of n_axes and an upper limit of the effective
-# rank of the PCA.
-                 
+# n_paxes (PCA axes fed to LDA) : doit être >> k-1 pour que la LDA dispose
+#   de suffisamment de signal pour séparer les clusters. Avec n_paxes = k-1,
+#   la DAPC se réduit à la même projection que la PCA brute (plots identiques).
+#   Règle pratique : ~0.8 * n_ind / k, avec un plancher à n_daxes et un
+#   plafond au rang effectif de la PCA.
 if (k_infer > 1) {
   n_daxes <- max(1L, k_infer - 1L)
   n_paxes <- max(n_daxes,
@@ -212,6 +237,7 @@ if (k_infer > 1) {
               ". Discriminant Analysis requires at least 2 clusters.\n",
               "The data suggests a panmictic population (no genetic structure)."))
 }
+
 
 cat(sprintf("[4/5] DAPC (paxes = %d, n.da = %d)...\n", n_paxes, n_daxes))
 
@@ -294,52 +320,35 @@ okabe_ito    <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442",
                   "#0072B2", "#D55E00", "#CC79A7", "#000000")
 cluster_cols <- colorRampPalette(okabe_ito)(k_infer)
 
-##### BIC curve (auto mode only) #####
+##### BIC curve (auto mode only) — IC from n_runs find.clusters() repetitions #####
 if (is.null(params$k_fixed) && !is.null(fc_auto)) {
-  bic_df <- data.frame(
-    K   = as.integer(sub("K=", "", names(fc_auto$Kstat))),
-    BIC = as.numeric(fc_auto$Kstat)
-  )
-
-# Compute BIC min/max across n_start replicates for each K to get a CI ribbon
-bic_reps <- lapply(bic_df$K, function(k) {
-  if (!is.null(params$seed)) set.seed(params$seed + k)
-  bic_vals <- replicate(params$n_start, {
-    km <- kmeans(pca_scores, centers = k, iter.max = 1e4, nstart = 1)
-    n  <- nrow(pca_scores)
-    p  <- ncol(pca_scores)
-    # BIC formula used by adegenet: WSS + k*p * log(n)
-    km$tot.withinss + k * p * log(n)
-  })
-  data.frame(K = k, BIC_mean = mean(bic_vals),
-            BIC_min = min(bic_vals), BIC_max = max(bic_vals))
-})
-  bic_ci_df <- do.call(rbind, bic_reps)
-  # Use the original Kstat values as the mean (authoritative from find.clusters)
-  bic_ci_df$BIC_mean <- bic_df$BIC
   
   bic_plot <- ggplot(bic_ci_df, aes(x = K, y = BIC_mean)) +
+    # Ribbon: full min–max range across runs
     geom_ribbon(aes(ymin = BIC_min, ymax = BIC_max),
                 fill = "grey70", alpha = 0.35) +
-    geom_errorbar(aes(ymin = BIC_min, ymax = BIC_max),
-                  width = 0.25, colour = "grey50", linewidth = 0.5) +
-    geom_line(colour = "grey40", linewidth = 0.7) +
-    geom_point(size = 3, colour = "grey30") +
+    # Error bars: mean ± sd (tighter, shows typical spread)
+    geom_errorbar(aes(ymin = BIC_mean - BIC_sd, ymax = BIC_mean + BIC_sd),
+                  width = 0.25, colour = "grey40", linewidth = 0.6) +
+    geom_line(colour = "grey30", linewidth = 0.8) +
+    geom_point(size = 3, colour = "grey20") +
     geom_point(data = subset(bic_ci_df, K == k_infer),
                size = 4, colour = "#D55E00", shape = 18) +
     geom_vline(xintercept = k_infer, linetype = "dashed",
                colour = "#D55E00", linewidth = 0.5) +
-    scale_x_continuous(breaks = bic_df$K) +
+    scale_x_continuous(breaks = bic_ci_df$K) +
     labs(
       title    = "K-means BIC — K selection",
-      subtitle = paste0("Retained K = ", k_infer,
-                        "  (orange diamond)  |  ribbon = min/max across ", params$n_start, " starts"),
+      subtitle = sprintf(
+        "Retained K = %d  (orange diamond)  |  %d runs of find.clusters()  |  bars = mean \u00b1 sd  |  ribbon = min\u2013max",
+        k_infer, length(fc_runs)
+      ),
       x = "Number of clusters K",
       y = "BIC"
     ) +
     theme_bw(base_size = 13) +
     theme(plot.title    = element_text(face = "bold"),
-          plot.subtitle = element_text(size = 10, colour = "grey40"))
+          plot.subtitle = element_text(size = 9, colour = "grey40"))
   
   ggsave("outputs/output_bic.png", plot = bic_plot,
          width = 7, height = 5, dpi = 150, bg = "white")
@@ -414,6 +423,15 @@ ggsave("outputs/output_pca.png", plot = pca_plot,
 cat("  -> PCA figure:", "outputs/output_pca.png", "\n")
 
 ##### DAPC scatter (DA axes) — native scatter.dapc() with eigenvalue insets #####
+# scatter.dapc() is the canonical adegenet function for DAPC visualisation.
+# It natively supports:
+#   scree.da  = TRUE  → barplot of DA eigenvalues (% variance per DA axis)
+#                        drawn in grey in the bottom-left margin
+#   scree.pca = TRUE  → barplot of PCA eigenvalues used by the DAPC step
+#                        drawn in grey in the top-right margin
+#   posi.da / posi.pca → corner where each inset is placed
+# Both insets are rendered as part of the base-R graphics device, giving
+# the classic look seen in Jombart et al. publications.
 
 # DA eigenvalues → used for axis labels (% variance explained)
 da_eig     <- dapc_result$eig
@@ -424,6 +442,8 @@ png("outputs/output_dapc_scatter.png",
 
 if (ncol(dapc_result$ind.coord) >= 2) {
   # ≥ 2 DA axes: standard 2-D scatter
+  # Note: scatter.dapc() ignores xlab/ylab — axis labels are overwritten
+  # afterwards with title() which draws on top of the existing labels.
   scatter(
     dapc_result,
     col       = cluster_cols,
@@ -433,34 +453,40 @@ if (ncol(dapc_result$ind.coord) >= 2) {
     cstar     = 1,            # draw lines from centroid to each individual
     cellipse  = 1.5,          # 67% inertia ellipse radius
     txcex     = 0.75,         # cluster label size
-    # --- DA eigenvalue inset (bottom-left by default) ---
     scree.da  = TRUE,
     posi.da   = "bottomleft",
-    # --- PCA eigenvalue inset showing axes retained for the DAPC step ---
     scree.pca = TRUE,
-    posi.pca  = "bottomright",
-    # Axis labels with % variance explained
-    xlab      = sprintf("DA axis 1 (%.1f%%)", da_var_pct[1]),
-    ylab      = sprintf("DA axis 2 (%.1f%%)", da_var_pct[2])
+    posi.pca  = "bottomright"
   )
-  title(main = paste0("DAPC scatter  (K = ", k_infer, ")"),
-        sub  = sprintf("Reassignment rate: %.1f%%", assign_success),
-        cex.main = 1.3, font.main = 2, cex.sub = 0.9, col.sub = "grey40")
+  # Overwrite axis labels (scatter() ignores xlab/ylab arguments)
+  title(
+    main  = paste0("DAPC scatter  (K = ", k_infer, ")"),
+    sub   = sprintf("Reassignment rate: %.1f%%", assign_success),
+    xlab  = sprintf("DA axis 1 (%.1f%%)", da_var_pct[1]),
+    ylab  = sprintf("DA axis 2 (%.1f%%)", da_var_pct[2]),
+    cex.main = 1.3, font.main = 2,
+    cex.sub  = 0.9, col.sub  = "grey40",
+    cex.lab  = 1.1
+  )
   
 } else {
-  # K = 2 → only 1 DA axis: density plot per cluster (scatter() falls back to this)
+  # K = 2 → only 1 DA axis: density plot per cluster
   scatter(
     dapc_result,
     col      = cluster_cols,
     bg       = "white",
     solid    = 0.6,
     scree.da = TRUE,
-    posi.da  = "topright",
-    xlab     = sprintf("DA axis 1 (%.1f%%)", da_var_pct[1])
+    posi.da  = "topright"
   )
-  title(main = paste0("DAPC — DA axis 1  (K = ", k_infer, ")"),
-        sub  = sprintf("Reassignment rate: %.1f%%", assign_success),
-        cex.main = 1.3, font.main = 2, cex.sub = 0.9, col.sub = "grey40")
+  title(
+    main = paste0("DAPC — DA axis 1  (K = ", k_infer, ")"),
+    sub  = sprintf("Reassignment rate: %.1f%%", assign_success),
+    xlab = sprintf("DA axis 1 (%.1f%%)", da_var_pct[1]),
+    cex.main = 1.3, font.main = 2,
+    cex.sub  = 0.9, col.sub  = "grey40",
+    cex.lab  = 1.1
+  )
 }
 
 dev.off()
