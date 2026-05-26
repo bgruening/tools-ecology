@@ -194,11 +194,12 @@ print(table(fc_final$grp))
 ##### DAPC -- paxes = k-1 (Thia 2022 rule) #####
 
 # n_daxes (DA axes) : at most k-1 discriminant axes (algebraic bound of LDA)
-# n_paxes (PCA axes fed to LDA) : doit être >> k-1 pour que la LDA dispose
-#   de suffisamment de signal pour séparer les clusters. Avec n_paxes = k-1,
-#   la DAPC se réduit à la même projection que la PCA brute (plots identiques).
-#   Règle pratique : ~0.8 * n_ind / k, avec un plancher à n_daxes et un
-#   plafond au rang effectif de la PCA.
+# n_paxes (PCA axes fed to LDA) : must be >> k-1 so that the LDA has sufficient signal
+# to distinguish between the clusters.
+# When n_axes = k-1, DAPC reduces to the same projection as raw PCA (identical plots).
+# Rule of thumb: ~0.8*n_ind/k, with a lower limit of n_axes and an upper limit of the effective
+# rank of the PCA.
+                 
 if (k_infer > 1) {
   n_daxes <- max(1L, k_infer - 1L)
   n_paxes <- max(n_daxes,
@@ -211,7 +212,6 @@ if (k_infer > 1) {
               ". Discriminant Analysis requires at least 2 clusters.\n",
               "The data suggests a panmictic population (no genetic structure)."))
 }
-
 
 cat(sprintf("[4/5] DAPC (paxes = %d, n.da = %d)...\n", n_paxes, n_daxes))
 
@@ -300,23 +300,46 @@ if (is.null(params$k_fixed) && !is.null(fc_auto)) {
     K   = as.integer(sub("K=", "", names(fc_auto$Kstat))),
     BIC = as.numeric(fc_auto$Kstat)
   )
+
+# Compute BIC min/max across n_start replicates for each K to get a CI ribbon
+bic_reps <- lapply(bic_df$K, function(k) {
+  if (!is.null(params$seed)) set.seed(params$seed + k)
+  bic_vals <- replicate(params$n_start, {
+    km <- kmeans(pca_scores, centers = k, iter.max = 1e4, nstart = 1)
+    n  <- nrow(pca_scores)
+    p  <- ncol(pca_scores)
+    # BIC formula used by adegenet: WSS + k*p * log(n)
+    km$tot.withinss + k * p * log(n)
+  })
+  data.frame(K = k, BIC_mean = mean(bic_vals),
+            BIC_min = min(bic_vals), BIC_max = max(bic_vals))
+})
+  bic_ci_df <- do.call(rbind, bic_reps)
+  # Use the original Kstat values as the mean (authoritative from find.clusters)
+  bic_ci_df$BIC_mean <- bic_df$BIC
   
-  bic_plot <- ggplot(bic_df, aes(x = K, y = BIC)) +
-    geom_line(colour = "grey50", linewidth = 0.7) +
+  bic_plot <- ggplot(bic_ci_df, aes(x = K, y = BIC_mean)) +
+    geom_ribbon(aes(ymin = BIC_min, ymax = BIC_max),
+                fill = "grey70", alpha = 0.35) +
+    geom_errorbar(aes(ymin = BIC_min, ymax = BIC_max),
+                  width = 0.25, colour = "grey50", linewidth = 0.5) +
+    geom_line(colour = "grey40", linewidth = 0.7) +
     geom_point(size = 3, colour = "grey30") +
-    geom_point(data = subset(bic_df, K == k_infer),
+    geom_point(data = subset(bic_ci_df, K == k_infer),
                size = 4, colour = "#D55E00", shape = 18) +
     geom_vline(xintercept = k_infer, linetype = "dashed",
                colour = "#D55E00", linewidth = 0.5) +
     scale_x_continuous(breaks = bic_df$K) +
     labs(
       title    = "K-means BIC — K selection",
-      subtitle = paste0("Retained K = ", k_infer, "  (orange diamond)"),
+      subtitle = paste0("Retained K = ", k_infer,
+                        "  (orange diamond)  |  ribbon = min/max across ", params$n_start, " starts"),
       x = "Number of clusters K",
       y = "BIC"
     ) +
     theme_bw(base_size = 13) +
-    theme(plot.title = element_text(face = "bold"))
+    theme(plot.title    = element_text(face = "bold"),
+          plot.subtitle = element_text(size = 10, colour = "grey40"))
   
   ggsave("outputs/output_bic.png", plot = bic_plot,
          width = 7, height = 5, dpi = 150, bg = "white")
@@ -390,48 +413,57 @@ ggsave("outputs/output_pca.png", plot = pca_plot,
        width = 8, height = 6, dpi = 150, bg = "white")
 cat("  -> PCA figure:", "outputs/output_pca.png", "\n")
 
-##### DAPC scatter (DA axes) #####
-dapc_coords <- as.data.frame(dapc_result$ind.coord)
-dapc_coords$Cluster <- factor(as.character(fc_final$grp),
-                              levels = sort(unique(as.character(fc_final$grp))))
+##### DAPC scatter (DA axes) — native scatter.dapc() with eigenvalue insets #####
+
+# DA eigenvalues → used for axis labels (% variance explained)
+da_eig     <- dapc_result$eig
+da_var_pct <- da_eig / sum(da_eig) * 100
+
+png("outputs/output_dapc_scatter.png",
+    width = 8, height = 6, units = "in", res = 150, bg = "white")
 
 if (ncol(dapc_result$ind.coord) >= 2) {
-  # Two or more DA axes: standard 2-D scatter
-  dapc_scatter <- ggplot(dapc_coords,
-                         aes(x = LD1, y = LD2, colour = Cluster, fill = Cluster)) +
-    stat_ellipse(geom = "polygon", level = 0.67, alpha = 0.12, linewidth = 0.4) +
-    geom_point(size = 2.2, alpha = 0.85, shape = 21,
-               colour = "white", stroke = 0.3, aes(fill = Cluster)) +
-    scale_colour_manual(values = cluster_cols) +
-    scale_fill_manual(values = cluster_cols) +
-    labs(
-      title    = paste0("DAPC scatter (K = ", k_infer, ")"),
-      subtitle = sprintf("Reassignment rate: %.1f%%", assign_success),
-      x = "DA axis 1",
-      y = "DA axis 2"
-    ) +
-    theme_bw(base_size = 13) +
-    theme(plot.title    = element_text(face = "bold"),
-          plot.subtitle = element_text(size = 10, colour = "grey40"))
+  # ≥ 2 DA axes: standard 2-D scatter
+  scatter(
+    dapc_result,
+    col       = cluster_cols,
+    bg        = "white",
+    solid     = 0.6,          # point transparency (0 = transparent, 1 = solid)
+    cex       = 1.5,          # point size
+    cstar     = 1,            # draw lines from centroid to each individual
+    cellipse  = 1.5,          # 67% inertia ellipse radius
+    txcex     = 0.75,         # cluster label size
+    # --- DA eigenvalue inset (bottom-left by default) ---
+    scree.da  = TRUE,
+    posi.da   = "bottomleft",
+    # --- PCA eigenvalue inset showing axes retained for the DAPC step ---
+    scree.pca = TRUE,
+    posi.pca  = "bottomright",
+    # Axis labels with % variance explained
+    xlab      = sprintf("DA axis 1 (%.1f%%)", da_var_pct[1]),
+    ylab      = sprintf("DA axis 2 (%.1f%%)", da_var_pct[2])
+  )
+  title(main = paste0("DAPC scatter  (K = ", k_infer, ")"),
+        sub  = sprintf("Reassignment rate: %.1f%%", assign_success),
+        cex.main = 1.3, font.main = 2, cex.sub = 0.9, col.sub = "grey40")
+  
 } else {
-  # Only one DA axis (K = 2): density plot per cluster
-  dapc_scatter <- ggplot(dapc_coords, aes(x = LD1, fill = Cluster, colour = Cluster)) +
-    geom_density(alpha = 0.4, linewidth = 0.6) +
-    scale_colour_manual(values = cluster_cols) +
-    scale_fill_manual(values = cluster_cols) +
-    labs(
-      title    = paste0("DAPC density — DA axis 1 (K = ", k_infer, ")"),
-      subtitle = sprintf("Reassignment rate: %.1f%%", assign_success),
-      x = "DA axis 1",
-      y = "Density"
-    ) +
-    theme_bw(base_size = 13) +
-    theme(plot.title    = element_text(face = "bold"),
-          plot.subtitle = element_text(size = 10, colour = "grey40"))
+  # K = 2 → only 1 DA axis: density plot per cluster (scatter() falls back to this)
+  scatter(
+    dapc_result,
+    col      = cluster_cols,
+    bg       = "white",
+    solid    = 0.6,
+    scree.da = TRUE,
+    posi.da  = "topright",
+    xlab     = sprintf("DA axis 1 (%.1f%%)", da_var_pct[1])
+  )
+  title(main = paste0("DAPC — DA axis 1  (K = ", k_infer, ")"),
+        sub  = sprintf("Reassignment rate: %.1f%%", assign_success),
+        cex.main = 1.3, font.main = 2, cex.sub = 0.9, col.sub = "grey40")
 }
 
-ggsave("outputs/output_dapc_scatter.png", plot = dapc_scatter,
-       width = 8, height = 6, dpi = 150, bg = "white")
+dev.off()
 cat("  -> DAPC scatter  :", "outputs/output_dapc_scatter.png", "\n")
 
 ##### Posterior membership barplot (STRUCTURE-style) #####
