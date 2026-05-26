@@ -230,23 +230,34 @@ validate_k <- function(project, current_k, geno_matrix,
   return(TRUE)
 }
 
-# --- Build cross-entropy plot ---
+# --- Build cross-entropy plot (with 95% CI ribbon across repetitions) ---
 plot_cross_entropy <- function(project, k_min, k_max, best_k) {
   ce_df <- data.frame(
-    K  = k_min:k_max,
-    CE = sapply(k_min:k_max, function(k) mean(cross.entropy(project, K = k)))
+    K    = k_min:k_max,
+    CE   = sapply(k_min:k_max, function(k) mean(cross.entropy(project, K = k))),
+    CE_min = sapply(k_min:k_max, function(k) min(cross.entropy(project, K = k))),
+    CE_max = sapply(k_min:k_max, function(k) max(cross.entropy(project, K = k)))
   )
   ggplot(ce_df, aes(x = K, y = CE)) +
-    geom_line(color = "#0072B2") +
+    # Confidence ribbon (min–max across repetitions)
+    geom_ribbon(aes(ymin = CE_min, ymax = CE_max),
+                fill = "#0072B2", alpha = 0.15) +
+    geom_line(color = "#0072B2", linewidth = 0.8) +
     geom_point(color = "#0072B2", size = 2.5) +
+    # Error bars (min–max) at each K
+    geom_errorbar(aes(ymin = CE_min, ymax = CE_max),
+                  width = 0.2, color = "#0072B2", linewidth = 0.5) +
     geom_vline(xintercept = best_k, linetype = "dashed", color = "#D55E00") +
-    annotate("text", x = best_k + 0.15, y = max(ce_df$CE),
-             label = paste("K retenu =", best_k),
+    annotate("text", x = best_k + 0.15, y = max(ce_df$CE_max),
+             label = paste("K selected =", best_k),
              hjust = 0, color = "#D55E00", size = 3.5) +
-    labs(title = "Cross-entropy par K",
+    scale_x_continuous(breaks = k_min:k_max) +
+    labs(title    = "Cross-entropy par K",
+         subtitle = "Points = mean  |  Bars = Minimum and maximum across all repetitions",
          x = "K (number of clusters)",
-         y = "Average cross-entropy") +
-    theme_bw(base_size = 13)
+         y = "Cross-entropy") +
+    theme_bw(base_size = 13) +
+    theme(plot.subtitle = element_text(size = 10, colour = "grey40"))
 }
 
 # --- Build structure / admixture barplot ---
@@ -427,4 +438,3 @@ write.table(final_table, file = output_tabular,
 
 ggsave("outputs/barplot_t_struc.png", plot = p_struct,
        width = 12, height = 8, dpi = 150, bg = "white")
-
