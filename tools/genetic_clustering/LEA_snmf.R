@@ -252,7 +252,7 @@ plot_cross_entropy <- function(project, k_min, k_max, best_k) {
              label = paste("K selected =", best_k),
              hjust = 0, color = "#D55E00", size = 3.5) +
     scale_x_continuous(breaks = k_min:k_max) +
-    labs(title    = "Cross-entropy par K",
+    labs(title    = "Cross-entropy",
          subtitle = "Points = mean  |  Bars = Minimum and maximum across all repetitions",
          x = "K (number of clusters)",
          y = "Cross-entropy") +
