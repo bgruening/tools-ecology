@@ -56,6 +56,20 @@ if(apply_harmo == TRUE) {
   maf <- c(maf,"0+") #Systematic calculation for MAF 0+
 }
 
+correction_cohort <- args[next_args]
+if (correction_cohort == "single_cohort") {
+  next_args <- next_args + 1
+  adult_lifespan <- as.numeric(args[next_args])
+  next_args <- next_args + 1
+  age_at_maturity <- as.numeric(args[next_args])
+  next_args <- next_args + 1
+  coeff_breeding_variation <- args[next_args]
+  if (coeff_breeding_variation == "TRUE"){
+    next_args <- next_args + 1
+    Cvf <- as.numeric(args[next_args])
+  }
+}
+
 ##### Validate inputs #####
 # Genepop files
 if (length(list_gen) == 0) stop("gen_files is empty.", call. = FALSE)
@@ -89,7 +103,7 @@ colnames(indpop) <- c("Ind", "Pop")
 #########################################################################
 population_order <- function(gen_path, indpop, input_name) {
   lines <- readLines(gen_path)
-  pop_indices <- grep("^POP", lines, ignore.case = TRUE)
+  pop_indices <- grep("^POP$", lines, ignore.case = TRUE)
 
   pop_order <- data.frame(Pop=character(), pop_count=integer(), stringsAsFactors = FALSE)
   pop_id <- 0
@@ -509,6 +523,31 @@ if (apply_correction == TRUE) {
     )
 }
 
+######################## Nb to Ne ################################
+if (correction_cohort == "single_cohort") {
+  if (apply_correction == TRUE) {
+    if (coeff_breeding_variation == TRUE){
+      ldne_results <- ldne_results %>%
+        mutate(NeLD_with_correct_pseudorep_Nb = ifelse(NeLD_corrected != 999999,
+          NeLD_corrected/(0.833+0.637*log(adult_lifespan)-0.423*Cvf), NeLD_corrected))
+    } else {
+      ldne_results <- ldne_results %>%
+        mutate(NeLD_with_correct_pseudorep_Nb = ifelse(NeLD_corrected != 999999,
+          NeLD_corrected/(0.458+0.758*log(adult_lifespan/age_at_maturity)), NeLD_corrected))
+    }
+   } else {
+    if (coeff_breeding_variation == TRUE){
+      ldne_results <- ldne_results %>%
+        mutate(NeLD_with_correct_pseudorep_Nb = ifelse(NeLD != 999999,
+          NeLD/(0.833+0.637*log(adult_lifespan)-0.423*Cvf), NeLD))
+    } else {
+      ldne_results <- ldne_results %>%
+        mutate(NeLD_with_correct_pseudorep_Nb = ifelse(NeLD != 999999,
+          NeLD/(0.458+0.758*log(adult_lifespan/age_at_maturity)), NeLD))
+    }
+   }
+}
+
 ######################## Harmonic mean ###########################
 if (apply_harmo == TRUE) {
   harmonic_mean <- function(x) {
@@ -524,7 +563,8 @@ if (apply_harmo == TRUE) {
                   "JK_CI_up",
                   "Overall_LD_r2",
                   "Expected_LD_r2",
-                  "NeLD_corrected")
+                  "NeLD_corrected",
+                  "NeLD_with_correct_pseudorep_Nb")
   cols_to_use <- numeric_cols[numeric_cols %in% available_cols]
 
   #Final table
@@ -559,7 +599,7 @@ if (apply_harmo == TRUE) {
       select(-n_subsets) %>%
       relocate(Subset, .after = "Marker_type") %>%
       relocate(MAF, .after = "Subset") %>%
-      mutate(across(any_of(c("NeLD", "JK_CI_down", "JK_CI_up", "NeLD_corrected")), round, digits=0),
+      mutate(across(any_of(c("NeLD", "JK_CI_down", "JK_CI_up", "NeLD_corrected", "NeLD_with_correct_pseudorep_Nb")), round, digits=0),
             across(any_of(c("Overall_LD_r2", "Expected_LD_r2")), round, digits=5))
 
       ne_estim_all <- bind_rows(ne_estim_all, ne_estim)
@@ -571,15 +611,15 @@ if (apply_harmo == TRUE) {
   write.table(ne_estim_all, output_file, sep = "\t", row.names = FALSE, quote = FALSE)
 }
 
-if (apply_correction == TRUE) {
-  ldne_results <- ldne_results %>%
-    mutate(across(c(NeLD, JK_CI_down, JK_CI_up, NeLD_corrected), round, digits=0),
-            across(c(Overall_LD_r2, Expected_LD_r2), round, digits=5))
-} else {
-  ldne_results <- ldne_results %>%
-    mutate(across(c(NeLD, JK_CI_down, JK_CI_up), round, digits=0),
-            across(c(Overall_LD_r2, Expected_LD_r2), round, digits=5))
-}
+cols_to_round_0 <- c("NeLD", "JK_CI_down", "JK_CI_up")
+if (apply_correction) cols_to_round_0 <- c(cols_to_round_0, "NeLD_corrected")
+if (correction_cohort == "single_cohort") cols_to_round_0 <- c(cols_to_round_0, "NeLD_with_correct_pseudorep_Nb")
+
+ldne_results <- ldne_results %>%
+  mutate(
+    across(all_of(cols_to_round_0), round, digits = 0),
+    across(c(Overall_LD_r2, Expected_LD_r2), round, digits = 5)
+  )
 
 write.table(ldne_results,
             file = "summary_file/LDNe_results.txt",
