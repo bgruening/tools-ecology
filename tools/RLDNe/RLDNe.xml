@@ -328,7 +328,7 @@
                 <param name="mixed_cohort_params|age_at_maturity" value="2"/>
             </section>            
             <output_collection name="result_table" type="list" count="1">
-                <element name="genepop_SSRs_Nb_LDNe_results">
+                <element name="genepop_SSR_Nb_LDNe_results">
                     <assert_contents>
                         <has_n_lines n="122" delta="2"/>
                         <has_text text="Number of Loci = 9"/>
