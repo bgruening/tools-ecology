@@ -370,30 +370,6 @@ This tool implements the Linkage Disequilibrium (LD) method from **NeEstimator V
 
 ----
 
-**Correction : From effective number of breeders (Nb) to effective population size (Ne)**
------------------------------------------------------------------------------------------
-
-When sampling from a **single cohort** (e.g., juveniles or a single age class), the Linkage Disequilibrium method estimates the effective number of breeders that produced that cohort ($N_b$), rather than the total effective population size ($N_e$).
-
-To convert this single-cohort estimate into an annual effective population size, the tool applies predictive genetic models derived by **Waples *et al.* (2013)**. The correction factor depends on whether you can provide the coefficient of variation of breeding success ($C_{Vf}$).
-
-**Case 1: Breeding variation ($C_{Vf}$) is unknown**
-If you do not specify $C_{Vf}$, the relationship is predicted using the ratio of adult lifespan ($AL$) to age at maturity ($$\alpha$$) (Waples *et al.* 2013, Figure 3a):
-
-.. math::
-
-    \frac{N_b}{N_e} = 0.458 + 0.758 \times \log\left(\frac{AL}{\alpha}\right)
-
-**Case 2: Breeding variation ($C_{Vf}$) is known**
-If $C_{Vf}$ (the coefficient of variation of $b_x$, the mean number of offspring produced at age $x$ using only ages with $b_x > 0$) is provided, a more precise adjustment is made (Waples *et al.* 2013, Figure 3b):
-
-.. math::
-
-    \frac{N_b}{N_e} = 0.833 + 0.637 \times \log(AL) - 0.423 \times C_{Vf}
-
-The resulting adjusted value is appended to the output table under the column **NeLD_with_correct_pseudorep_Nb**.
-----
-
 **Pseudoreplication correction**
 --------------------------------
 If users choose to apply the pseudoreplication correction, they must provide the number of chromosomes for the studied species.
@@ -407,6 +383,33 @@ where *C* is the number of chromosomes.
 
 The output table *(LDNe_results)* contains the same columns as the output of LDNe estimation and an additional column called LDNe_corrected.
 
+----
+
+**Correction : From effective number of breeders (Nb) to effective population size (Ne)**
+-----------------------------------------------------------------------------------------
+
+When sampling from a **single cohort** (e.g., juveniles or a single age class), the Linkage Disequilibrium method estimates the effective number of breeders that produced that cohort (Nb), rather than the total effective population size (Ne).
+
+To convert this single-cohort estimate into an annual effective population size, the tool applies predictive genetic models derived by **Waples *et al.* (2013)**. The correction factor depends on whether you can provide the coefficient of variation of breeding success (*CVf*).
+
+**Case 1: Breeding variation *CVf* is unknown**
+If you do not specify *CVf*, the relationship is predicted using the ratio of adult lifespan (*AL*) to age at maturity :
+
+.. math::
+
+    \frac{N_b}{N_e} = 0.458 + 0.758 \times \log\left(\frac{AL}{\alpha}\right)
+(Waples *et al.* 2013, Figure 3a)
+
+ 
+**Case 2: Breeding variation CVf is known**
+If *CVf* (the coefficient of variation of *bx*, the mean number of offspring produced at age *x* using only ages with *bx > 0*) is provided, a more precise adjustment is made (Waples *et al.* 2013, Figure 3b):
+
+.. math::
+
+    \frac{N_b}{N_e} = 0.833 + 0.637 \times \log(AL) - 0.423 \times C_{Vf}
+(Waples *et al.* 2013, Figure 3b)
+
+The resulting adjusted value is appended to the output table under the column **NeLD_with_correct_pseudorep_Nb**.
 ----
 
 **Harmonic mean**
