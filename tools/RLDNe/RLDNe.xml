@@ -22,7 +22,7 @@
         cp "\$INTERNAL_BIN" bin_local/Ne2-1L &&
         chmod +x bin_local/Ne2-1L &&
 
-        Rscript '$__tool_directory__/RLDNe.r'
+        Rscript '$__tool_directory__/RLDNe.R'
             #set $gen_paths = ','.join([str($v) for $v in $input_data])
             #set $gen_names = "','".join([re.sub('[\s]', '_', str($file.element_identifier)) for $file in $input_data])
             '$gen_paths'
