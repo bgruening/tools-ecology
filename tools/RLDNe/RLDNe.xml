@@ -22,7 +22,7 @@
         cp "\$INTERNAL_BIN" bin_local/Ne2-1L &&
         chmod +x bin_local/Ne2-1L &&
 
-        Rscript '$__tool_directory__/RLDNe.R'
+        Rscript '$__tool_directory__/RLDNe.r'
             #set $gen_paths = ','.join([str($v) for $v in $input_data])
             #set $gen_names = "','".join([re.sub('[\s]', '_', str($file.element_identifier)) for $file in $input_data])
             '$gen_paths'
@@ -51,9 +51,9 @@
             #if $mixed_cohort_params.sampling_scheme == "single_cohort":
                 '$mixed_cohort_params.adult_lifespan'
                 '$mixed_cohort_params.age_at_maturity'
-                '$mixed_cohort_params.coeff_breeding_variation.use_cvf'
+                '$mixed_cohort_params.use_cvf'
         
-                #if $mixed_cohort_params.coeff_breeding_variation.use_cvf =="TRUE":
+                #if $mixed_cohort_params.use_cvf =="TRUE":
                     '$mixed_cohort_params.variation_coefficient_bx'
                 #end if
             #end if
@@ -105,7 +105,7 @@
                 help="Required when correction is enabled"/>
         </section>
 
-        <section name="cohort_sampling" title="Cohort sampling settings" expanded="false">
+        <section name="cohort_sampling" title="Cohort sampling settings (optional)" expanded="false">
 
             <conditional name="mixed_cohort_params">
 
@@ -131,22 +131,14 @@
                         label="Age at maturity"
                         help="Age at sexual maturity of the species."/>
 
-                    <conditional name="coeff_breeding_variation">
-                        <param name="use_cvf" type="boolean"
-                            truevalue="TRUE" falsevalue="FALSE" checked="false"
-                            label="Do you know the coefficient of variation of breeding for adult lifespan ?"
-                            help="Coefficient of variation of bx (mean number of offspring produced at age x) for adult lifespan (using only ages with bx>0)."/>
+                    <param name="use_cvf" type="boolean"
+                        truevalue="TRUE" falsevalue="FALSE" checked="false"
+                        label="Do you know the coefficient of variation of breeding for adult lifespan ?"
+                        help="Coefficient of variation of bx (mean number of offspring produced at age x) for adult lifespan (using only ages with bx>0)."/>
 
-                        <when value="FALSE">
-                        </when>
-
-                        <when value="TRUE">
-                            <param name="variation_coefficient_bx" type="float"
-                                label="Coefficient of variation of breeding"
-                                help="Coefficient of variation of bx (mean number of offspring produced at age x) for adult lifespan (using only ages with bx>0)."/>
-                        </when>
-                    </conditional>
-
+                    <param name="variation_coefficient_bx" type="float" optional="true"
+                        label="Coefficient of variation of breeding"
+                        help="Required if the above option is checked. Coefficient of variation of bx (mean number of offspring produced at age x) for adult lifespan (using only ages with bx>0)."/>
                 </when>
 
             </conditional>
@@ -342,9 +334,7 @@
                     <param name="sampling_scheme" value="single_cohort"/>
                     <param name="adult_lifespan" value="5"/>
                     <param name="age_at_maturity" value="2"/>
-                    <conditional name="coeff_breeding_variation">
-                        <param name="use_cvf" value="FALSE"/>
-                    </conditional>
+                    <param name="use_cvf" value="FALSE"/>
                 </conditional>
             </section>          
             <output_collection name="result_table" type="list" count="1">
@@ -364,6 +354,7 @@
                 </assert_contents>
             </output>
         </test>
+        
     </tests>
     <help><![CDATA[
 Usage
@@ -389,21 +380,6 @@ This tool implements the Linkage Disequilibrium (LD) method from **NeEstimator V
 
 ----
 
-**Pseudoreplication correction**
---------------------------------
-If users choose to apply the pseudoreplication correction, they must provide the number of chromosomes for the studied species.
-The tool computes the correction using the following equation (Waples *et al.* 2016):
-
-.. math::
-
-    Ne_{corrected} = \frac{Ne_{LD}}{0.098 + 0.219 \times \log(C)}
-
-where *C* is the number of chromosomes.
-
-The output table *(LDNe_results)* contains the same columns as the output of LDNe estimation and an additional column called LDNe_corrected.
-
-----
-
 **Correction : From effective number of breeders (Nb) to effective population size (Ne)**
 -----------------------------------------------------------------------------------------
 
@@ -417,6 +393,7 @@ If you do not specify *CVf*, the relationship is predicted using the ratio of ad
 .. math::
 
     \frac{N_b}{N_e} = 0.458 + 0.758 \times \log\left(\frac{AL}{\alpha}\right)
+
 (Waples *et al.* 2013, Figure 3a)
 
  
@@ -426,9 +403,26 @@ If *CVf* (the coefficient of variation of *bx*, the mean number of offspring pro
 .. math::
 
     \frac{N_b}{N_e} = 0.833 + 0.637 \times \log(AL) - 0.423 \times C_{Vf}
+
 (Waples *et al.* 2013, Figure 3b)
 
 The resulting adjusted value is appended to the output table under the column **NeLD_with_correct_pseudorep_Nb**.
+
+----
+
+**Pseudoreplication correction**
+--------------------------------
+If users choose to apply the pseudoreplication correction, they must provide the number of chromosomes for the studied species.
+The tool computes the correction using the following equation (Waples *et al.* 2016):
+
+.. math::
+
+    Ne_{corrected} = \frac{Ne_{LD}}{0.098 + 0.219 \times \log(C)}
+
+where *C* is the number of chromosomes.
+
+The output table *(LDNe_results)* contains the same columns as the output of LDNe estimation and an additional column called LDNe_corrected.
+
 ----
 
 **Harmonic mean**
