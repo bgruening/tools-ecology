@@ -76,7 +76,7 @@
                 <param name="quality" type="select" label="Video quality"
                     help="Select output video bitrate,does not affect processing speed or annotations. 
                           Higher quality than the original is not useful and will only increase file size.">
-                    <option value="copy" selected="true">Original quality (copy)</option>
+                    <option value="copy" selected="true">Original quality (lossless)</option>
                     <option value="1000k">1000k - Standard (260p)</option>
                     <option value="2000k">2000k - Standard (480p~720p)</option>
                     <option value="4000k">4000k - Good (1080p)</option>
