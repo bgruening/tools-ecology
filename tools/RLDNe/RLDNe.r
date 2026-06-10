@@ -54,6 +54,7 @@ if (apply_correction == TRUE) {
 if(apply_harmo == TRUE) {
   maf <- unlist(strsplit(args[next_args], "\\s+"))
   maf <- c(maf,"0+") #Systematic calculation for MAF 0+
+  next_args <- next_args + 1
 }
 
 correction_cohort <- args[next_args]
@@ -103,7 +104,7 @@ colnames(indpop) <- c("Ind", "Pop")
 #########################################################################
 population_order <- function(gen_path, indpop, input_name) {
   lines <- readLines(gen_path)
-  pop_indices <- grep("^POP$", lines, ignore.case = TRUE)
+  pop_indices <- grep("^POP\\s*$", lines, ignore.case = TRUE)
 
   pop_order <- data.frame(Pop=character(), pop_count=integer(), stringsAsFactors = FALSE)
   pop_id <- 0
@@ -154,7 +155,7 @@ anonymise_genepop <- function(gen_path) {
   lines <- readLines(gen_path)
 
   # Find POP line
-  pop_indices <- grep("^POP$", lines, ignore.case = TRUE)
+  pop_indices <- grep("^POP\\s*$", lines, ignore.case = TRUE)
 
   # Copy lines (we will modify only individual names)
   new_lines <- lines
@@ -612,13 +613,17 @@ if (apply_harmo == TRUE) {
 }
 
 cols_to_round_0 <- c("NeLD", "JK_CI_down", "JK_CI_up")
-if (apply_correction) cols_to_round_0 <- c(cols_to_round_0, "NeLD_corrected")
-if (correction_cohort == "single_cohort") cols_to_round_0 <- c(cols_to_round_0, "NeLD_with_correct_pseudorep_Nb")
+if (apply_correction) {
+  cols_to_round_0 <- c(cols_to_round_0, "NeLD_corrected")
+}
+if (correction_cohort == "single_cohort") {
+  cols_to_round_0 <- c(cols_to_round_0, "NeLD_with_correct_pseudorep_Nb")
+}
 
 ldne_results <- ldne_results %>%
   mutate(
-    across(all_of(cols_to_round_0), round, digits = 0),
-    across(c(Overall_LD_r2, Expected_LD_r2), round, digits = 5)
+    across(all_of(cols_to_round_0), \(x) round(x, digits = 0)),
+    across(c(Overall_LD_r2, Expected_LD_r2), \(x) round(x, digits = 5))
   )
 
 write.table(ldne_results,
