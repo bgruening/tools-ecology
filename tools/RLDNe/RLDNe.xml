@@ -105,7 +105,7 @@
                 help="Required when correction is enabled"/>
         </section>
 
-        <section name="cohort_sampling" title="Cohort sampling settings (optional)" expanded="false">
+        <section name="cohort_sampling" title="Cohort sampling settings" expanded="false">
 
             <conditional name="mixed_cohort_params">
 
@@ -197,6 +197,11 @@
                 <param name="apply_harmonic" value="TRUE"/>
                 <param name="maf_harmonic" value="1"/>
             </section>
+            <section name="cohort_sampling">
+                <conditional name="mixed_cohort_params">
+                    <param name="sampling_scheme" value="mixed_cohorts"/>
+                </conditional>
+            </section>
             
             <output_collection name="result_table" type="list" count="1">
                 <element name="genepop_SNPs_test_LDNe_results">
@@ -240,6 +245,11 @@
             <section name="harmonic">
                 <param name="apply_harmonic" value="TRUE"/>
                 <param name="maf_harmonic" value="1"/>
+            </section>
+            <section name="cohort_sampling">
+                <conditional name="mixed_cohort_params">
+                    <param name="sampling_scheme" value="mixed_cohorts"/>
+                </conditional>
             </section>
             
             <output_collection name="result_table" type="list" count="1">
@@ -285,6 +295,11 @@
             <section name="harmonic">
                 <param name="apply_harmonic" value="FALSE"/>
             </section>
+            <section name="cohort_sampling">
+                <conditional name="mixed_cohort_params">
+                    <param name="sampling_scheme" value="mixed_cohorts"/>
+                </conditional>
+            </section>
             
             <output_collection name="result_table" type="list" count="1">
                 <element name="genepop_SNPs_test_LDNe_results">
@@ -323,14 +338,19 @@
                 <param name="apply_harmonic" value="FALSE"/>
             </section>
             <section name="cohort_sampling">
-                <param name="mixed_cohort_params|sampling_scheme" value="single_cohort"/>
-                <param name="mixed_cohort_params|adult_lifespan" value="5"/>
-                <param name="mixed_cohort_params|age_at_maturity" value="2"/>
-            </section>            
+                <conditional name="mixed_cohort_params">
+                    <param name="sampling_scheme" value="single_cohort"/>
+                    <param name="adult_lifespan" value="5"/>
+                    <param name="age_at_maturity" value="2"/>
+                    <conditional name="coeff_breeding_variation">
+                        <param name="use_cvf" value="FALSE"/>
+                    </conditional>
+                </conditional>
+            </section>          
             <output_collection name="result_table" type="list" count="1">
                 <element name="genepop_SSR_Nb_LDNe_results">
                     <assert_contents>
-                        <has_n_lines n="122" delta="2"/>
+                        <has_n_lines n="169" delta="2"/>
                         <has_text text="Number of Loci = 9"/>
                     </assert_contents>
                 </element>
@@ -339,12 +359,11 @@
             <output name="summary_table" ftype="tabular">
                 <assert_contents>
                     <has_n_columns n="14"/>
-                    <has_n_lines n="13"/>
+                    <has_n_lines n="25"/>
                     <has_line_matching expression="Dataset\tPop\tMarker_type\tSubset\tloci\tPolymorphic_loci\tMAF\tNeLD\tJK_CI_down\tJK_CI_up\tOverall_LD_r2\tExpected_LD_r2\tNeLD_corrected\tNeLD_with_correct_pseudorep_Nb"/>
                 </assert_contents>
             </output>
         </test>
-        
     </tests>
     <help><![CDATA[
 Usage
