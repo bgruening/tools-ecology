@@ -380,6 +380,21 @@ This tool implements the Linkage Disequilibrium (LD) method from **NeEstimator V
 
 ----
 
+**Pseudoreplication correction**
+--------------------------------
+If users choose to apply the pseudoreplication correction, they must provide the number of chromosomes for the studied species.
+The tool computes the correction using the following equation (Waples *et al.* 2016):
+
+.. math::
+
+    Ne_{corrected} = \frac{Ne_{LD}}{0.098 + 0.219 \times \log(C)}
+
+where *C* is the number of chromosomes.
+
+The output table *(LDNe_results)* contains the same columns as the output of LDNe estimation and an additional column called LDNe_corrected.
+
+----
+
 **Correction : From effective number of breeders (Nb) to effective population size (Ne)**
 -----------------------------------------------------------------------------------------
 
@@ -408,22 +423,7 @@ If *CVf* (the coefficient of variation of *bx*, the mean number of offspring pro
 
 The resulting adjusted value is appended to the output table under the column **NeLD_with_correct_pseudorep_Nb**.
 
-----
-
-**Pseudoreplication correction**
---------------------------------
-If users choose to apply the pseudoreplication correction, they must provide the number of chromosomes for the studied species.
-The tool computes the correction using the following equation (Waples *et al.* 2016):
-
-.. math::
-
-    Ne_{corrected} = \frac{Ne_{LD}}{0.098 + 0.219 \times \log(C)}
-
-where *C* is the number of chromosomes.
-
-The output table *(LDNe_results)* contains the same columns as the output of LDNe estimation and an additional column called LDNe_corrected.
-
-----
+----      
 
 **Harmonic mean**
 -----------------
