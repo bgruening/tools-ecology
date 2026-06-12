@@ -109,7 +109,7 @@
 
             <conditional name="mixed_cohort_params">
 
-                <param name="sampling_scheme" type="select" 
+                <param name="sampling_scheme" type="select" display="radio"
                     label="Sampling scheme"
                     help="Specify whether sampled individuals belong to a single cohort or to a mixture of cohorts.">
 
