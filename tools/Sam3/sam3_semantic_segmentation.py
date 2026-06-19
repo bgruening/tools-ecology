@@ -686,7 +686,10 @@ def main():
         convert_avi_to_mp4(outputs_annotated, args.quality)
 
         if args.output_frames != "none":
-            print(f"\n→ Extracting video frames (mode: {args.output_frames})...")
+            print(
+                f"\n→ Extracting video frames "
+                f"(mode: {args.output_frames})..."
+            )
             raw_dir = (
                 outdir / "frames_raw"
                 if args.output_frames in ("raw", "both")
