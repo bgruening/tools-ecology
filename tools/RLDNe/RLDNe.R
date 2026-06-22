@@ -516,7 +516,7 @@ if (apply_correction == TRUE) {
     mutate(
       NeLD = as.numeric(NeLD),
       NeLD = ifelse(is.na(NeLD), 999999, NeLD),
-      NeLD_corrected = ifelse(
+      NeLD_corrected_pseudorep = ifelse(
         NeLD == 999999,
         999999,
         NeLD / (0.098 + 0.219 * log(nb_chrom))
@@ -529,21 +529,21 @@ if (correction_cohort == "single_cohort") {
   if (apply_correction == TRUE) {
     if (coeff_breeding_variation == TRUE){
       ldne_results <- ldne_results %>%
-        mutate(NeLD_with_correct_pseudorep_Nb = ifelse(NeLD_corrected != 999999,
-          NeLD_corrected/(0.833+0.637*log(adult_lifespan)-0.423*Cvf), NeLD_corrected))
+        mutate(NeLD_corrected_Nb = ifelse(NeLD_corrected_pseudorep != 999999,
+          NeLD_corrected_pseudorep/(0.833+0.637*log(adult_lifespan)-0.423*Cvf), NeLD_corrected_pseudorep))
     } else {
       ldne_results <- ldne_results %>%
-        mutate(NeLD_with_correct_pseudorep_Nb = ifelse(NeLD_corrected != 999999,
-          NeLD_corrected/(0.458+0.758*log(adult_lifespan/age_at_maturity)), NeLD_corrected))
+        mutate(NeLD_corrected_Nb = ifelse(NeLD_corrected_pseudorep != 999999,
+          NeLD_corrected_pseudorep/(0.458+0.758*log(adult_lifespan/age_at_maturity)), NeLD_corrected_pseudorep))
     }
    } else {
     if (coeff_breeding_variation == TRUE){
       ldne_results <- ldne_results %>%
-        mutate(NeLD_with_correct_pseudorep_Nb = ifelse(NeLD != 999999,
+        mutate(NeLD_corrected_Nb = ifelse(NeLD != 999999,
           NeLD/(0.833+0.637*log(adult_lifespan)-0.423*Cvf), NeLD))
     } else {
       ldne_results <- ldne_results %>%
-        mutate(NeLD_with_correct_pseudorep_Nb = ifelse(NeLD != 999999,
+        mutate(NeLD_corrected_Nb = ifelse(NeLD != 999999,
           NeLD/(0.458+0.758*log(adult_lifespan/age_at_maturity)), NeLD))
     }
    }
@@ -564,8 +564,8 @@ if (apply_harmo == TRUE) {
                   "JK_CI_up",
                   "Overall_LD_r2",
                   "Expected_LD_r2",
-                  "NeLD_corrected",
-                  "NeLD_with_correct_pseudorep_Nb")
+                  "NeLD_corrected_pseudorep",
+                  "NeLD_corrected_Nb")
   cols_to_use <- numeric_cols[numeric_cols %in% available_cols]
 
   #Final table
@@ -600,7 +600,7 @@ if (apply_harmo == TRUE) {
       select(-n_subsets) %>%
       relocate(Subset, .after = "Marker_type") %>%
       relocate(MAF, .after = "Subset") %>%
-      mutate(across(any_of(c("NeLD", "JK_CI_down", "JK_CI_up", "NeLD_corrected", "NeLD_with_correct_pseudorep_Nb")), round, digits=0),
+      mutate(across(any_of(c("NeLD", "JK_CI_down", "JK_CI_up", "NeLD_corrected_pseudorep", "NeLD_corrected_Nb")), round, digits=0),
             across(any_of(c("Overall_LD_r2", "Expected_LD_r2")), round, digits=5))
 
       ne_estim_all <- bind_rows(ne_estim_all, ne_estim)
@@ -614,10 +614,10 @@ if (apply_harmo == TRUE) {
 
 cols_to_round_0 <- c("NeLD", "JK_CI_down", "JK_CI_up")
 if (apply_correction) {
-  cols_to_round_0 <- c(cols_to_round_0, "NeLD_corrected")
+  cols_to_round_0 <- c(cols_to_round_0, "NeLD_corrected_pseudorep")
 }
 if (correction_cohort == "single_cohort") {
-  cols_to_round_0 <- c(cols_to_round_0, "NeLD_with_correct_pseudorep_Nb")
+  cols_to_round_0 <- c(cols_to_round_0, "NeLD_corrected_Nb")
 }
 
 ldne_results <- ldne_results %>%
