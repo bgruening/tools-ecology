@@ -115,6 +115,9 @@ population_order <- function(gen_path, indpop, input_name) {
     for (k in (pop_index + 1):length(lines)) {
       
       current_line <- trimws(lines[k])
+
+      # Skip NA lines (can occur if loop range overshoots file length)
+      if (is.na(current_line)) next
       
       #Stop if we hit the next POP block
       if (grepl("^POP$", current_line, ignore.case = TRUE)) break
@@ -169,6 +172,10 @@ anonymise_genepop <- function(gen_path) {
     for (k in (pop_index + 1):length(lines)) {
 
       current_line <- trimws(lines[k])
+      
+      # Skip NA lines (can occur if loop range overshoots file length)
+      if (is.na(current_line)) next
+      
       #Stop if we hit the next POP block
       if (grepl("^POP$", current_line, ignore.case = TRUE)) break
 
