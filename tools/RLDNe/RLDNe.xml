@@ -413,7 +413,7 @@ The resulting adjusted value is appended to the output table under the column **
 If users choose to apply the harmonic mean, they provide a spaced-separated list of MAF values to process.
 The tool calculates the harmonic mean for all numeric columns available in the input file for each combination of population (Pop) and marker type (marker_type), for each specified MAF. It also counts the number of subsets contributing to each estimate and includes this information in the output. Missing values (NA) are treated as infinite when computing the harmonic mean.
 
-Numeric columns considered are : 'NeLD', 'JK_CI_down', 'JK_CI_up', 'Overall_LD_r2', 'Expected_LD_r2', 'NeLD_corrected_pseudorep' and "NeLD_corrected_Nb". If the user doesn't apply corrections, the NeLD_corrected_ columns are automatically skipped.
+Numeric columns considered are : 'NeLD', 'JK_CI_down', 'JK_CI_up', 'Overall_LD_r2', 'Expected_LD_r2', 'NeLD_corrected_pseudorep' and "NeLD_corrected_Nb". If the user doesn't apply corrections, the "NeLD_corrected" columns are automatically skipped.
 
 The output provides a summary table *(Extract LDNe results (harmonic_mean))* containing the harmonic mean for the columns mentioned just above. 
 
