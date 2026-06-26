@@ -194,7 +194,7 @@
                 <assert_contents>
                     <has_n_columns n="13"/>
                     <has_n_lines n="5"/>
-                    <has_line_matching expression="Dataset\tPop\tMarker_type\tSubset\tloci\tPolymorphic_loci\tMAF\tNeLD\tJK_CI_down\tJK_CI_up\tOverall_LD_r2\tExpected_LD_r2\tNeLD_corrected"/>
+                    <has_line_matching expression="Dataset\tPop\tMarker_type\tSubset\tloci\tPolymorphic_loci\tMAF\tNeLD\tJK_CI_down\tJK_CI_up\tOverall_LD_r2\tExpected_LD_r2\tNeLD_corrected_pseudorep"/>
                 </assert_contents>
             </output>
 
@@ -202,7 +202,7 @@
                 <assert_contents>
                     <has_n_columns n="11"/>
                     <has_n_lines n="2"/>
-                    <has_line_matching expression="Dataset\tPop\tMarker_type\tSubset\tMAF\tNeLD\tJK_CI_down\tJK_CI_up\tOverall_LD_r2\tExpected_LD_r2\tNeLD_corrected"/>
+                    <has_line_matching expression="Dataset\tPop\tMarker_type\tSubset\tMAF\tNeLD\tJK_CI_down\tJK_CI_up\tOverall_LD_r2\tExpected_LD_r2\tNeLD_corrected_pseudorep"/>
                 </assert_contents>
             </output>
         </test>
@@ -333,7 +333,7 @@
                 <assert_contents>
                     <has_n_columns n="14"/>
                     <has_n_lines n="25"/>
-                    <has_line_matching expression="Dataset\tPop\tMarker_type\tSubset\tloci\tPolymorphic_loci\tMAF\tNeLD\tJK_CI_down\tJK_CI_up\tOverall_LD_r2\tExpected_LD_r2\tNeLD_corrected\tNeLD_with_correct_pseudorep_Nb"/>
+                    <has_line_matching expression="Dataset\tPop\tMarker_type\tSubset\tloci\tPolymorphic_loci\tMAF\tNeLD\tJK_CI_down\tJK_CI_up\tOverall_LD_r2\tExpected_LD_r2\tNeLD_corrected_pseudorep\tNeLD_with_corrected_Nb"/>
                 </assert_contents>
             </output>
         </test>
