@@ -527,6 +527,16 @@ if (apply_correction == TRUE) {
         NeLD == 999999,
         999999,
         NeLD / (0.098 + 0.219 * log(nb_chrom))
+      ),
+      JK_CI_down_pseudorep = ifelse(
+        JK_CI_down == 999999 | is.na(JK_CI_down),
+        JK_CI_down,
+        JK_CI_down / (0.098 + 0.219 * log(nb_chrom))
+      ),
+      JK_CI_up_pseudorep = ifelse(
+        JK_CI_up == 999999 | is.na(JK_CI_up),
+        JK_CI_up,
+        JK_CI_up / (0.098 + 0.219 * log(nb_chrom))
       )
     )
 }
@@ -537,21 +547,65 @@ if (correction_cohort == "single_cohort") {
     if (coeff_breeding_variation == TRUE){
       ldne_results <- ldne_results %>%
         mutate(NeLD_corrected_Nb = ifelse(NeLD_corrected_pseudorep != 999999,
-          NeLD_corrected_pseudorep/(0.833+0.637*log(adult_lifespan)-0.423*Cvf), NeLD_corrected_pseudorep))
+          NeLD_corrected_pseudorep/(0.833+0.637*log(adult_lifespan)-0.423*Cvf), NeLD_corrected_pseudorep),
+        JK_CI_down_Nb = ifelse(
+          JK_CI_down == 999999 | is.na(JK_CI_down),
+          JK_CI_down,
+          JK_CI_down / (0.833+0.637*log(adult_lifespan)-0.423*Cvf)
+        ),
+        JK_CI_up_Nb = ifelse(
+          JK_CI_up == 999999 | is.na(JK_CI_up),
+          JK_CI_up,
+          JK_CI_up / (0.833+0.637*log(adult_lifespan)-0.423*Cvf)
+        )
+      )
     } else {
       ldne_results <- ldne_results %>%
         mutate(NeLD_corrected_Nb = ifelse(NeLD_corrected_pseudorep != 999999,
-          NeLD_corrected_pseudorep/(0.458+0.758*log(adult_lifespan/age_at_maturity)), NeLD_corrected_pseudorep))
+          NeLD_corrected_pseudorep/(0.458+0.758*log(adult_lifespan/age_at_maturity)), NeLD_corrected_pseudorep),
+        JK_CI_down_Nb = ifelse(
+          JK_CI_down == 999999 | is.na(JK_CI_down),
+          JK_CI_down,
+          JK_CI_down / (0.458+0.758*log(adult_lifespan/age_at_maturity))
+        ),
+        JK_CI_up_Nb = ifelse(
+          JK_CI_up == 999999 | is.na(JK_CI_up),
+          JK_CI_up,
+          JK_CI_up / (0.458+0.758*log(adult_lifespan/age_at_maturity))
+        )
+      )
     }
-   } else {
+  } else {
     if (coeff_breeding_variation == TRUE){
       ldne_results <- ldne_results %>%
         mutate(NeLD_corrected_Nb = ifelse(NeLD != 999999,
-          NeLD/(0.833+0.637*log(adult_lifespan)-0.423*Cvf), NeLD))
+          NeLD/(0.833+0.637*log(adult_lifespan)-0.423*Cvf), NeLD),
+          JK_CI_down_Nb = ifelse(
+            JK_CI_down == 999999 | is.na(JK_CI_down),
+            JK_CI_down,
+            JK_CI_down / (0.833+0.637*log(adult_lifespan)-0.423*Cvf)
+          ),
+          JK_CI_up_Nb = ifelse(
+            JK_CI_up == 999999 | is.na(JK_CI_up),
+            JK_CI_up,
+            JK_CI_up / (0.833+0.637*log(adult_lifespan)-0.423*Cvf)
+          )
+        )
     } else {
       ldne_results <- ldne_results %>%
         mutate(NeLD_corrected_Nb = ifelse(NeLD != 999999,
-          NeLD/(0.458+0.758*log(adult_lifespan/age_at_maturity)), NeLD))
+          NeLD/(0.458+0.758*log(adult_lifespan/age_at_maturity)), NeLD),
+          JK_CI_down_Nb = ifelse(
+            JK_CI_down == 999999 | is.na(JK_CI_down),
+            JK_CI_down,
+            JK_CI_down / (0.458+0.758*log(adult_lifespan/age_at_maturity))
+          ),
+          JK_CI_up_Nb = ifelse(
+            JK_CI_up == 999999 | is.na(JK_CI_up),
+            JK_CI_up,
+            JK_CI_up / (0.458+0.758*log(adult_lifespan/age_at_maturity))
+          )
+        )
     }
    }
 }
@@ -572,7 +626,11 @@ if (apply_harmo == TRUE) {
                   "Overall_LD_r2",
                   "Expected_LD_r2",
                   "NeLD_corrected_pseudorep",
-                  "NeLD_corrected_Nb")
+                  "NeLD_corrected_Nb",
+                  "JK_CI_down_pseudorep",
+                  "JK_CI_up_pseudorep",
+                  "JK_CI_down_Nb",
+                  "JK_CI_up_Nb")
   cols_to_use <- numeric_cols[numeric_cols %in% available_cols]
 
   #Final table
@@ -607,7 +665,10 @@ if (apply_harmo == TRUE) {
       select(-n_subsets) %>%
       relocate(Subset, .after = "Marker_type") %>%
       relocate(MAF, .after = "Subset") %>%
-      mutate(across(any_of(c("NeLD", "JK_CI_down", "JK_CI_up", "NeLD_corrected_pseudorep", "NeLD_corrected_Nb")), round, digits=0),
+      mutate(across(any_of(c("NeLD", "JK_CI_down", "JK_CI_up", 
+                                "NeLD_corrected_pseudorep", "NeLD_corrected_Nb", 
+                                "JK_CI_down_pseudorep","JK_CI_up_pseudorep",
+                                "JK_CI_down_Nb","JK_CI_up_Nb")), round, digits=0),
             across(any_of(c("Overall_LD_r2", "Expected_LD_r2")), round, digits=5))
 
       ne_estim_all <- bind_rows(ne_estim_all, ne_estim)
@@ -621,10 +682,10 @@ if (apply_harmo == TRUE) {
 
 cols_to_round_0 <- c("NeLD", "JK_CI_down", "JK_CI_up")
 if (apply_correction) {
-  cols_to_round_0 <- c(cols_to_round_0, "NeLD_corrected_pseudorep")
+  cols_to_round_0 <- c(cols_to_round_0, "NeLD_corrected_pseudorep", "JK_CI_down_pseudorep","JK_CI_up_pseudorep")
 }
 if (correction_cohort == "single_cohort") {
-  cols_to_round_0 <- c(cols_to_round_0, "NeLD_corrected_Nb")
+  cols_to_round_0 <- c(cols_to_round_0, "NeLD_corrected_Nb","JK_CI_down_Nb","JK_CI_up_Nb")
 }
 
 ldne_results <- ldne_results %>%
@@ -638,3 +699,4 @@ write.table(ldne_results,
             row.names = FALSE,
             quote = FALSE,
             sep = "\t")
+
